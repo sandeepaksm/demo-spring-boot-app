@@ -1,6 +1,6 @@
 # Demo — Spring Boot Application
 
-A simple Spring Boot web application.
+A simple Spring Boot web application. (TESTING)
 
 ## Prerequisites
 
