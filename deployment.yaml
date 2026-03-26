@@ -1,0 +1,34 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: demo-spring-app
+  labels:
+    app: demo-spring-app
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: demo-spring-app
+  template:
+    metadata:
+      labels:
+        app: demo-spring-app
+    spec:
+      containers:
+      - name: spring-boot-container
+        image: sandeepaksm/demo-spring-boot-app:1 # Jenkins will update this tag
+        ports:
+        - containerPort: 8080
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: demo-spring-service
+spec:
+  type: LoadBalancer
+  selector:
+    app: demo-spring-app
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8080
