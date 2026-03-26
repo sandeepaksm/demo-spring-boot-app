@@ -1,14 +1,14 @@
-FROM eclipse-temurin:17-jdk AS build
-WORKDIR /app
-COPY .mvn .mvn
-COPY mvnw .
-COPY pom.xml .
-RUN ./mvnw dependency:go-offline -q
-COPY src ./src
-RUN ./mvnw package -DskipTests
+# Use JDK 17 as the base image
+FROM openjdk:17-jdk-slim
 
-FROM eclipse-temurin:17-jre
+# Set the working directory
 WORKDIR /app
-COPY --from=build /app/target/demo-0.0.1-SNAPSHOT.war app.war
-EXPOSE 9090
+
+# Copy the war file from the target directory to the container
+COPY target/*.war app.war
+
+# Expose the port your app runs on (usually 8080)
+EXPOSE 8080
+
+# Run the application
 ENTRYPOINT ["java", "-jar", "app.war"]
