@@ -1,71 +1,39 @@
 pipeline {
-    agent { label 'Jenkins_Agent' }
+    agent {label 'Jenkins-Agent'}
 
     tools {
         maven 'Maven'
         jdk 'JDK17'
     }
 
-    environment {
-        DOCKER_IMAGE = "sandeep2862/demo-spring-boot-app:${BUILD_NUMBER}"
-        SONAR_URL = "http://52.65.189.13:9000" // Your SonarQube IP
-    }
-
     stages {
         stage('Checkout') {
             steps {
-                git branch: 'master', url: 'https://github.com/sandeepaksm/demo-spring-boot-app.git'
+                git branch: 'master',
+                url: 'https://github.com/sandeepaksm/demo-spring-boot-app.git'
             }
         }
 
-        stage('Build & Test') {
+        stage('Build') {
             steps {
-                sh 'mvn clean package -DskipTests'
+                sh 'mvn clean compile -DskipTests'
             }
         }
 
-        stage('Static Code Analysis') {
+        stage('Package WAR') {
             steps {
-                // Ensure you have a 'sonarqube-token' credential in Jenkins
-                withCredentials([string(credentialsId: 'sonarqube-token', variable: 'SONAR_AUTH_TOKEN')]) {
-                    sh "mvn sonar:sonar -Dsonar.login=${SONAR_AUTH_TOKEN} -Dsonar.host.url=${SONAR_URL}"
-                }
+                sh 'mvn package -DskipTests'
             }
         }
+    }
 
-        stage('Build and Push Docker Image') {
-            steps {
-                script {
-                    // Requires Docker installed on Jenkins-Agent
-                    sh "docker build -t ${DOCKER_IMAGE} ."
-
-                    withCredentials([usernamePassword(credentialsId: 'docker-hub-cred', passwordVariable: 'DOCKER_PASS', usernameVariable: 'DOCKER_USER')]) {
-                        sh "echo ${DOCKER_PASS} | docker login -u ${DOCKER_USER} --password-stdin"
-                        sh "docker push ${DOCKER_IMAGE}"
-                    }
-                }
-            }
+    post {
+        success {
+            archiveArtifacts artifacts: 'target/*.war', fingerprint: true
+            echo "Build successful. WAR file archived."
         }
-
-        stage('Update K8s Manifest') {
-            steps {
-        withCredentials([string(credentialsId: 'github-token', variable: 'GITHUB_TOKEN')]) {
-            sh """
-                git config user.email "sandeepaksm@gmail.com"
-                git config user.name "sandeepaksm"
-                sed -i 's|image: sandeep2862/demo-spring-boot-app:.*|image: ${DOCKER_IMAGE}|g' k8s/deployment.yaml
-                
-                # Only commit if there are actual changes
-                if ! git diff --exit-code k8s/deployment.yaml; then
-                    git add k8s/deployment.yaml
-                    git commit -m "Update image to version ${BUILD_NUMBER}"
-                    git push https://${GITHUB_TOKEN}@github.com/sandeepaksm/demo-spring-boot-app.git HEAD:master
-                else
-                    echo "No changes to deployment.yaml, skipping git push."
-                fi
-            """
-                }
-            }
+        failure {
+            echo "Build failed."
         }
     }
 }
