@@ -8,7 +8,7 @@ pipeline {
 
     environment {
         DOCKER_IMAGE = "sandeep2862/demo-spring-boot-app:${BUILD_NUMBER}"
-        SONAR_URL = "http://13.55.32.254/:9000" // Your SonarQube IP
+        SONAR_URL = "http://3.25.89.170:9000/" // Your SonarQube IP
     }
 
     stages {
