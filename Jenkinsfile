@@ -48,19 +48,26 @@ pipeline {
         }
 
         stage('Update K8s Manifest') {
-            steps {
-                // This updates the deployment.yaml with the new image tag
-                withCredentials([string(credentialsId: 'github-token', variable: 'GITHUB_TOKEN')]) {
-                    sh """
-                        git config user.email "sandeepaksm@gmail.com"
-                        git config user.name "sandeepaksm"
-                        sed -i 's|image: sandeepaksm/demo-spring-boot-app:.*|image: ${DOCKER_IMAGE}|g' k8s/deployment.yaml
-                        git add k8s/deployment.yaml
-                        git commit -m "Update image to version ${BUILD_NUMBER}"
-                        git push https://${GITHUB_TOKEN}@github.com/sandeepaksm/demo-spring-boot-app.git HEAD:master
-                    """
-                }
-            }
+    steps {
+        withCredentials([string(credentialsId: 'github-token', variable: 'GITHUB_TOKEN')]) {
+            sh """
+                git config user.email "sandeepaksm@gmail.com"
+                git config user.name "sandeepaksm"
+                
+                # Update the image tag
+                sed -i 's|image: .*/demo-spring-boot-app:.*|image: sandeep2862/demo-spring-boot-app:${BUILD_NUMBER}|g' k8s/deployment.yaml
+                
+                # Only commit and push if the file was actually changed
+                if ! git diff --exit-code k8s/deployment.yaml; then
+                    git add k8s/deployment.yaml
+                    git commit -m "Update image to version ${BUILD_NUMBER}"
+                    git push https://${GITHUB_TOKEN}@github.com/sandeepaksm/demo-spring-boot-app.git HEAD:master
+                else
+                    echo "No changes detected in deployment.yaml. Skipping commit."
+                fi
+            """
         }
+    }
+}
     }
 }
